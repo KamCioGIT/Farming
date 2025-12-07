@@ -1,0 +1,388 @@
+local RSGCore = exports['rsg-core']:GetCoreObject()
+
+-- simple cache for server-side plant tracking
+local ServerPlants = {} 
+
+-- Shop Logic
+local ShopBaseName = "farming_supplies"
+
+CreateThread(function()
+    Wait(1000)
+    if Config.ShopNPCs then
+        for i, shop in pairs(Config.ShopNPCs) do
+            local shopData = {
+                name = ShopBaseName .. "_" .. i,
+                label = "Farming Supplies",
+                coords = shop.coords,
+                items = Config.ShopItems
+            }
+            exports['rsg-inventory']:CreateShop(shopData)
+        end
+    end
+end)
+
+RegisterNetEvent('rsg-farming:server:openShop', function(index)
+    local src = source
+    local shopId = index or 1
+    exports['rsg-inventory']:OpenShop(src, ShopBaseName .. "_" .. shopId)
+end)
+
+
+-- Initialize and Load Plants
+Citizen.CreateThread(function()
+    MySQL.query('SELECT * FROM rsg_farming', {}, function(result)
+        if result and #result > 0 then
+            for i = 1, #result do
+                local data = json.decode(result[i].data)
+                data.id = result[i].id
+                ServerPlants[result[i].id] = data
+            end
+        end
+    end)
+end)
+
+-- MAINTENANCE LOOP: Health, Water, Weeds
+CreateThread(function()
+    while true do
+        Wait(60000) -- Run every 1 minute
+        local updated = false
+        
+        for id, plant in pairs(ServerPlants) do
+            local changed = false
+            
+            -- 1. Water Decay (~2% per tick)
+            if plant.water and plant.water > 0 then
+                plant.water = math.max(0, plant.water - 2)
+                changed = true
+            end
+            
+            -- 2. Weed Growth (DISABLED)
+            -- if not plant.weed then plant.weed = 0 end
+            -- if plant.weed < 100 then
+            --    plant.weed = math.min(100, plant.weed + math.random(2, 5))
+            --    changed = true
+            -- end
+            
+            -- 3. Health Decay logic
+            if not plant.health then plant.health = 100 end
+            
+            -- If weeds > 50, damage health (DISABLED)
+            -- if plant.weed > 50 then
+            --    plant.health = math.max(0, plant.health - 2)
+            --    changed = true
+            -- end
+            
+            -- If water < 20, damage health
+            if plant.water and plant.water < 20 then
+                 plant.health = math.max(0, plant.health - 5)
+                 changed = true
+            end
+            
+            -- 4. Check Death
+            if plant.health <= 0 then
+                -- Plant dies
+                if ServerPlants[id] then
+                    ServerPlants[id] = nil
+                    MySQL.query('DELETE FROM rsg_farming WHERE id = ?', {id})
+                    TriggerClientEvent('rsg-farming:client:removePlant', -1, id)
+                end
+                changed = false -- Plant removed, no update needed
+            end
+
+            if changed and ServerPlants[id] then
+                ServerPlants[id] = plant
+                MySQL.update('UPDATE rsg_farming SET data = ? WHERE id = ?', {json.encode(plant), id})
+                -- Sync update to clients
+                TriggerClientEvent('rsg-farming:client:updatePlant', -1, id, PreparePlantForClient(plant))
+            end
+        end
+    end
+end)
+
+
+-- Helper: Add elapsed time to plant data for client sync
+function PreparePlantForClient(plant)
+    local clientPlant = {}
+    for k, v in pairs(plant) do
+        clientPlant[k] = v
+    end
+    
+    -- Calculate elapsed time since watering
+    if plant.wateredTime then
+        clientPlant.elapsedOnSync = os.time() - plant.wateredTime
+    else
+        clientPlant.elapsedOnSync = 0
+    end
+    
+    return clientPlant
+end
+
+-- Event: Player Requests Plant Data
+RegisterNetEvent('rsg-farming:server:requestPlants', function()
+    local src = source
+    local clientPlants = {}
+    for id, plant in pairs(ServerPlants) do
+        clientPlants[id] = PreparePlantForClient(plant)
+    end
+    TriggerClientEvent('rsg-farming:client:syncPlants', src, clientPlants)
+end)
+
+
+-- Event: Player Plants a Seed
+RegisterNetEvent('rsg-farming:server:plantSeed', function(plantData)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if not Player then return end
+
+    -- Initialize Stats
+    plantData.health = 100
+    plantData.weed = 0
+    plantData.water = 0 
+    plantData.fertilized = false
+
+    MySQL.insert('INSERT INTO rsg_farming (citizenid, plantname, data) VALUES (?, ?, ?)',
+        {Player.PlayerData.citizenid, plantData.type, json.encode(plantData)}, function(id)
+        
+        plantData.id = id
+        ServerPlants[id] = plantData
+        TriggerClientEvent('rsg-farming:client:addPlant', -1, plantData) -- Sync to all
+    end)
+end)
+
+-- Event: Update Plant Status (Water/Fertilize/Growth)
+RegisterNetEvent('rsg-farming:server:updatePlant', function(plantId, newData)
+    if ServerPlants[plantId] then
+        ServerPlants[plantId] = newData
+        MySQL.update('UPDATE rsg_farming SET data = ? WHERE id = ?', {json.encode(newData), plantId})
+        TriggerClientEvent('rsg-farming:client:updatePlant', -1, plantId, newData)
+    end
+end)
+
+-- Event: Remove Weeds
+RegisterNetEvent('rsg-farming:server:removeWeeds', function(plantId)
+    local src = source
+    if ServerPlants[plantId] then
+        ServerPlants[plantId].weed = 0
+        MySQL.update('UPDATE rsg_farming SET data = ? WHERE id = ?', {json.encode(ServerPlants[plantId]), plantId})
+        TriggerClientEvent('rsg-farming:client:updatePlant', -1, plantId, PreparePlantForClient(ServerPlants[plantId]))
+        TriggerClientEvent('ox_lib:notify', src, { title = 'Success', description = 'Weeds removed!', type = 'success' })
+    end
+end)
+
+-- Event: Remove Plant (Harvest/Death)
+RegisterNetEvent('rsg-farming:server:removePlant', function(plantId)
+    if ServerPlants[plantId] then
+        ServerPlants[plantId] = nil
+        MySQL.query('DELETE FROM rsg_farming WHERE id = ?', {plantId})
+        TriggerClientEvent('rsg-farming:client:removePlant', -1, plantId)
+    end
+end)
+
+-- Event: Harvest Reward
+RegisterNetEvent('rsg-farming:server:harvest', function(plantId)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    local plant = ServerPlants[plantId]
+    
+    if plant and Player then
+        -- Check if plant needs water (vanilla check)
+        if not plant.water or plant.water < 0 then
+             -- Relaxed this check slightly since water decays, but essentially it shouldn't be dry?
+             -- Actually, let's just check Health for harvest capability
+        end
+
+        -- Health Check: Cannot harvest if too unhealthy
+        if plant.health and plant.health < 20 then
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'Plant is too unhealthy to harvest!', type = 'error' })
+            return
+        end
+        
+        -- Check if plant is fully grown (5 minutes = 300 seconds)
+        local GROWTH_TIME = 300
+        if plant.wateredTime then
+            local elapsed = os.time() - plant.wateredTime
+            if elapsed < GROWTH_TIME then
+                local remaining = GROWTH_TIME - elapsed
+                local mins = math.floor(remaining / 60)
+                local secs = remaining % 60
+                TriggerClientEvent('ox_lib:notify', src, { 
+                    title = 'Not Ready', 
+                    description = string.format('Crop needs %d:%02d more to grow', mins, secs), 
+                    type = 'error' 
+                })
+                return
+            end
+        else
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'Plant needs to be watered first', type = 'error' })
+            return
+        end
+        
+        local seedData = Config.Seeds[plant.type]
+        if seedData then
+            -- Yield calculation based on health
+            local healthFactor = (plant.health or 100) / 100
+            local baseReward = seedData.rewardcount
+            
+            -- Fertilizer Bonus (+50% Yield)
+            if plant.fertilized then
+                baseReward = math.ceil(baseReward * 1.5)
+            end
+            
+            local finalCount = math.max(1, math.floor(baseReward * healthFactor))
+            
+            Player.Functions.AddItem(seedData.rewarditem, finalCount)
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[seedData.rewarditem], "add")
+            
+            TriggerClientEvent('ox_lib:notify', src, { 
+                title = 'Harvested!', 
+                description = 'You harvested ' .. finalCount .. 'x ' .. seedData.rewarditem .. ' (Quality: ' .. math.floor(healthFactor * 100) .. '%)', 
+                type = 'success' 
+            })
+            
+            -- Remove plant after harvest
+            ServerPlants[plantId] = nil
+            MySQL.query('DELETE FROM rsg_farming WHERE id = ?', {plantId})
+            TriggerClientEvent('rsg-farming:client:removePlant', -1, plantId)
+        end
+    end
+end)
+
+
+-- Event: Fertilize Plant
+RegisterNetEvent('rsg-farming:server:fertilizePlant', function(plantId)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    local plant = ServerPlants[plantId]
+
+    if plant and Player then
+        if Player.Functions.RemoveItem('fertilizer', 1) then
+            plant.fertilized = true
+            
+            -- If plant was already watered, adjust elapsed time to account for speed boost?
+            -- It's complex to retroactively apply speed boost.
+            -- Simplification: Speed boost applies to total duration check logic dynamically.
+            
+            ServerPlants[plantId] = plant
+            MySQL.update('UPDATE rsg_farming SET data = ? WHERE id = ?', {json.encode(plant), plantId})
+            TriggerClientEvent('rsg-farming:client:updatePlant', -1, plantId, PreparePlantForClient(plant))
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items['fertilizer'], "remove")
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Success', description = 'Plant fertilized! Growth speed +35%, Yield +50%', type = 'success' })
+        else
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'You need fertilizer', type = 'error' })
+        end
+    end
+end)
+
+
+-- Event: Give Water (Called from Client when filling bucket)
+RegisterNetEvent('rsg-farming:server:fillBucket', function()
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    if Player then
+        if Player.Functions.RemoveItem('bucket', 1) then
+            Player.Functions.AddItem('fullbucket', 1, false, { uses = 6 })
+            TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items['fullbucket'], "add")
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Success', description = 'Bucket filled with water (6 uses)', type = 'success' })
+        else
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'You need an empty bucket', type = 'error' })
+        end
+    end
+end)
+
+
+-- Event: Water Plant
+local BUCKET_MAX_USES = 6
+
+RegisterNetEvent('rsg-farming:server:waterPlant', function(plantId)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    local plant = ServerPlants[plantId]
+    
+    if plant and Player then
+        -- Check for fullbucket with uses tracking
+        local bucket = Player.Functions.GetItemByName('fullbucket')
+        local wateringCan = not bucket and Player.Functions.GetItemByName('wateringcan_full')
+        
+        if bucket or wateringCan then
+            local usedBucket = false
+            local usedCan = false
+            
+            if bucket then
+                -- Get current uses (default to BUCKET_MAX_USES if new bucket)
+                local uses = (bucket.info and bucket.info.uses) or BUCKET_MAX_USES
+                uses = uses - 1
+                
+                if uses <= 0 then
+                    -- Bucket is empty, replace with empty bucket
+                    Player.Functions.RemoveItem('fullbucket', 1, bucket.slot)
+                    Player.Functions.AddItem('bucket', 1)
+                    TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items['bucket'], "add")
+                    TriggerClientEvent('ox_lib:notify', src, { title = 'Info', description = 'Bucket is now empty!', type = 'inform' })
+                else
+                    -- Update bucket uses
+                    Player.Functions.RemoveItem('fullbucket', 1, bucket.slot)
+                    Player.Functions.AddItem('fullbucket', 1, false, { uses = uses })
+                    TriggerClientEvent('ox_lib:notify', src, { title = 'Info', description = 'Bucket uses remaining: ' .. uses, type = 'inform' })
+                end
+                usedBucket = true
+            elseif wateringCan then
+                -- Watering can empties after one use
+                Player.Functions.RemoveItem('wateringcan_full', 1, wateringCan.slot)
+                Player.Functions.AddItem('wateringcan_empty', 1)
+                usedCan = true
+            end
+            
+            -- Update plant water level and set watered time (starts growth)
+            plant.water = 100
+            if not plant.wateredTime then
+                plant.wateredTime = os.time() -- Server time when first watered
+            end
+            
+            ServerPlants[plantId] = plant
+            MySQL.update('UPDATE rsg_farming SET data = ? WHERE id = ?', {json.encode(plant), plantId})
+            TriggerClientEvent('rsg-farming:client:updatePlant', -1, plantId, PreparePlantForClient(plant))
+            
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Success', description = 'Plant watered! Growth has started.', type = 'success' })
+        else
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'You need a full bucket or watering can', type = 'error' })
+        end
+    end
+end)
+
+
+-- Event: Destroy Plant
+RegisterNetEvent('rsg-farming:server:destroyPlant', function(plantId)
+    local src = source
+    local Player = RSGCore.Functions.GetPlayer(src)
+    
+    if ServerPlants[plantId] and Player then
+        ServerPlants[plantId] = nil
+        MySQL.query('DELETE FROM rsg_farming WHERE id = ?', {plantId})
+        TriggerClientEvent('rsg-farming:client:removePlant', -1, plantId)
+        TriggerClientEvent('ox_lib:notify', src, { title = 'Success', description = 'Plant destroyed', type = 'success' })
+    end
+end)
+
+-- Usable Items
+RSGCore.Functions.CreateUseableItem('fullbucket', function(source, item)
+    local src = source
+    TriggerClientEvent('rsg-farming:client:useWater', src)
+end)
+
+RSGCore.Functions.CreateUseableItem('wateringcan_full', function(source, item)
+    local src = source
+    TriggerClientEvent('rsg-farming:client:useWater', src)
+end)
+
+for plantName, data in pairs(Config.Seeds) do
+    RSGCore.Functions.CreateUseableItem(data.seedname, function(source, item)
+        local src = source
+        -- Remove seed from inventory
+        local Player = RSGCore.Functions.GetPlayer(src)
+        if Player and Player.Functions.RemoveItem(data.seedname, data.seedreq or 1) then
+            TriggerClientEvent('rsg-farming:client:useSeed', src, plantName)
+        else
+            TriggerClientEvent('ox_lib:notify', src, { title = 'Error', description = 'Not enough seeds', type = 'error' })
+        end
+    end)
+end

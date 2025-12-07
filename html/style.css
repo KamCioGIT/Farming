@@ -1,0 +1,627 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'IM Fell English SC', serif;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ============================================
+   PLANT STATUS MENU - WILD WEST THEME
+   ============================================ */
+
+#plant-menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: fadeSlideIn 0.4s ease-out;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.menu-container {
+    background: linear-gradient(180deg,
+            rgba(45, 32, 20, 0.97) 0%,
+            rgba(35, 25, 15, 0.98) 50%,
+            rgba(25, 18, 10, 0.99) 100%);
+    border: 4px solid #8B4513;
+    border-radius: 8px;
+    padding: 30px 40px;
+    min-width: 420px;
+    max-width: 500px;
+    position: relative;
+    box-shadow:
+        0 0 0 2px #5C3317,
+        0 0 0 6px rgba(139, 69, 19, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.9),
+        inset 0 0 80px rgba(0, 0, 0, 0.4);
+}
+
+/* Decorative corners */
+.menu-container::before,
+.menu-container::after {
+    content: '⚜';
+    position: absolute;
+    font-size: 24px;
+    color: #C4A35A;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.menu-container::before {
+    top: 8px;
+    left: 12px;
+}
+
+.menu-container::after {
+    top: 8px;
+    right: 12px;
+}
+
+/* Side borders */
+.menu-border-left,
+.menu-border-right {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 60%;
+    background: linear-gradient(180deg,
+            transparent 0%,
+            #8B4513 20%,
+            #C4A35A 50%,
+            #8B4513 80%,
+            transparent 100%);
+    border-radius: 4px;
+}
+
+.menu-border-left {
+    left: -4px;
+}
+
+.menu-border-right {
+    right: -4px;
+}
+
+/* Header */
+.menu-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(196, 163, 90, 0.4);
+    position: relative;
+}
+
+.plant-icon {
+    font-size: 50px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+.header-info {
+    flex: 1;
+}
+
+.header-info h1 {
+    font-family: 'Rye', cursive;
+    color: #C4A35A;
+    font-size: 26px;
+    font-weight: 400;
+    text-shadow:
+        2px 2px 4px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(196, 163, 90, 0.3);
+    letter-spacing: 2px;
+}
+
+.plant-type {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
+.close-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: linear-gradient(135deg, #8B0000, #5C0000);
+    border: 2px solid #C4A35A;
+    color: #C4A35A;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: serif;
+}
+
+.close-btn:hover {
+    background: linear-gradient(135deg, #AA0000, #8B0000);
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
+}
+
+/* Progress Section */
+.progress-section {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    color: #C4A35A;
+    font-size: 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.progress-bar {
+    height: 18px;
+    background: linear-gradient(180deg,
+            rgba(0, 0, 0, 0.6) 0%,
+            rgba(30, 20, 10, 0.8) 100%);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 2px solid #5C3317;
+    box-shadow:
+        inset 0 3px 6px rgba(0, 0, 0, 0.5),
+        0 1px 0 rgba(196, 163, 90, 0.2);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.3) 0%,
+            transparent 100%);
+}
+
+.progress-fill.water {
+    background: linear-gradient(90deg, #1E90FF, #4169E1);
+    box-shadow: 0 0 10px rgba(30, 144, 255, 0.5);
+}
+
+.progress-fill.growth {
+    background: linear-gradient(90deg, #228B22, #32CD32);
+    box-shadow: 0 0 10px rgba(34, 139, 34, 0.5);
+}
+
+.progress-fill.health {
+    background: linear-gradient(90deg, #8B0000, #FF0000);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+.progress-fill.weeds {
+    background: linear-gradient(90deg, #556B2F, #808000);
+    box-shadow: 0 0 10px rgba(85, 107, 47, 0.5);
+}
+
+/* Info Section */
+.info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(196, 163, 90, 0.3);
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+}
+
+.info-icon {
+    font-size: 20px;
+}
+
+.info-label {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.info-value {
+    color: #C4A35A;
+    font-weight: bold;
+    margin-left: auto;
+}
+
+/* Actions Grid */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.action-btn {
+    background: linear-gradient(180deg,
+            rgba(92, 51, 23, 0.8) 0%,
+            rgba(60, 35, 15, 0.9) 100%);
+    border: 2px solid #8B4513;
+    border-radius: 6px;
+    padding: 15px;
+    color: #C4A35A;
+    font-size: 14px;
+    font-family: 'IM Fell English SC', serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.action-btn:hover {
+    background: linear-gradient(180deg,
+            rgba(139, 69, 19, 0.9) 0%,
+            rgba(92, 51, 23, 0.95) 100%);
+    border-color: #C4A35A;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.action-btn .icon {
+    font-size: 22px;
+}
+
+.action-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.action-btn.harvest {
+    background: linear-gradient(180deg,
+            rgba(34, 139, 34, 0.8) 0%,
+            rgba(20, 80, 20, 0.9) 100%);
+    border-color: #228B22;
+}
+
+.action-btn.harvest:hover {
+    background: linear-gradient(180deg,
+            rgba(50, 205, 50, 0.8) 0%,
+            rgba(34, 139, 34, 0.9) 100%);
+    border-color: #32CD32;
+}
+
+.action-btn.destroy {
+    background: linear-gradient(180deg,
+            rgba(139, 0, 0, 0.8) 0%,
+            rgba(80, 0, 0, 0.9) 100%);
+    border-color: #8B0000;
+}
+
+.action-btn.destroy:hover {
+    background: linear-gradient(180deg,
+            rgba(178, 34, 34, 0.8) 0%,
+            rgba(139, 0, 0, 0.9) 100%);
+    border-color: #B22222;
+}
+
+/* ============================================
+   PROGRESS BAR OVERLAY - WILD WEST THEME
+   ============================================ */
+
+#progress-overlay {
+    position: fixed;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.progress-container {
+    background: linear-gradient(180deg,
+            rgba(45, 32, 20, 0.95) 0%,
+            rgba(25, 18, 10, 0.98) 100%);
+    border: 3px solid #8B4513;
+    border-radius: 8px;
+    padding: 20px 40px;
+    min-width: 350px;
+    text-align: center;
+    box-shadow:
+        0 0 0 2px #5C3317,
+        0 15px 40px rgba(0, 0, 0, 0.8);
+}
+
+.progress-title {
+    font-family: 'Rye', cursive;
+    color: #C4A35A;
+    font-size: 20px;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    letter-spacing: 2px;
+}
+
+.progress-bar-outer {
+    height: 24px;
+    background: linear-gradient(180deg,
+            rgba(0, 0, 0, 0.6) 0%,
+            rgba(30, 20, 10, 0.8) 100%);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 2px solid #5C3317;
+    margin-bottom: 10px;
+}
+
+.progress-bar-inner {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #8B4513, #CD853F, #DEB887);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    position: relative;
+    box-shadow: 0 0 15px rgba(222, 184, 135, 0.5);
+}
+
+.progress-bar-inner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.4) 0%,
+            transparent 100%);
+}
+
+.progress-percentage {
+    font-family: 'Rye', cursive;
+    color: #C4A35A;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================
+   TEXT POPUP - WILD WEST THEME
+   ============================================ */
+
+#text-popup {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    animation: popIn 0.4s ease-out;
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.8);
+    }
+
+    50% {
+        transform: translateX(-50%) scale(1.05);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+.popup-content {
+    font-family: 'Rye', cursive;
+    font-size: 20px;
+    color: #C4A35A;
+    text-shadow:
+        2px 2px 4px rgba(0, 0, 0, 0.9),
+        0 0 20px rgba(196, 163, 90, 0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px 25px;
+    background: linear-gradient(180deg,
+            rgba(45, 32, 20, 0.9) 0%,
+            rgba(25, 18, 10, 0.95) 100%);
+    border: 2px solid #8B4513;
+    border-radius: 6px;
+    box-shadow:
+        0 0 0 2px #5C3317,
+        0 8px 30px rgba(0, 0, 0, 0.8);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .menu-container {
+        min-width: 90vw;
+        padding: 20px;
+    }
+
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   WATER SOURCE MENU - WILD WEST THEME
+   ============================================ */
+
+#water-menu {
+    position: fixed;
+    bottom: 10%;
+    right: 5%;
+    z-index: 900;
+    animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.water-menu-container {
+    background: linear-gradient(180deg,
+            rgba(45, 32, 20, 0.95) 0%,
+            rgba(25, 18, 10, 0.98) 100%);
+    border: 3px solid #8B4513;
+    border-radius: 8px;
+    padding: 0;
+    min-width: 260px;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 2px #5C3317,
+        0 15px 50px rgba(0, 0, 0, 0.9),
+        inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+.water-menu-header {
+    background: linear-gradient(180deg,
+            rgba(92, 51, 23, 0.9) 0%,
+            rgba(60, 35, 15, 0.95) 100%);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 2px solid rgba(196, 163, 90, 0.4);
+}
+
+.water-icon {
+    font-size: 28px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.water-title {
+    font-family: 'Rye', cursive;
+    color: #C4A35A;
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.water-menu-buttons {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.water-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: linear-gradient(180deg,
+            rgba(92, 51, 23, 0.6) 0%,
+            rgba(60, 35, 15, 0.8) 100%);
+    border: 2px solid rgba(139, 69, 19, 0.6);
+    border-radius: 6px;
+    color: #C4A35A;
+    font-family: 'IM Fell English SC', serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.water-btn:hover {
+    background: linear-gradient(180deg,
+            rgba(139, 69, 19, 0.8) 0%,
+            rgba(92, 51, 23, 0.9) 100%);
+    border-color: #C4A35A;
+    transform: translateX(-5px);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.water-btn:active {
+    transform: translateX(-2px);
+}
+
+.water-btn .btn-icon {
+    font-size: 22px;
+}
+
+.water-btn .btn-text {
+    flex: 1;
+    text-align: left;
+}
+
+.water-btn .btn-key {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(196, 163, 90, 0.3);
+}
+
+.water-menu-footer {
+    padding: 10px 15px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(196, 163, 90, 0.2);
+    letter-spacing: 1px;
+}
