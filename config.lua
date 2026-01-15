@@ -50,8 +50,8 @@ Config.ShopNPCs = {
         model = "A_M_M_UniBoatCrew_01",
         blip = {
             enabled = true,
-            sprite = "blip_shop_dry_goods", -- General Store Icon
-            -- color = "BLIP_MODIFIER_MP_COLOR_32", -- Removing color to match standard look
+            sprite = "blip_shop_store", -- Valid General Store Icon from rsg-shops
+            -- color = "BLIP_MODIFIER_MP_COLOR_32",
             label = "Farming Supplies"
         }
     },
@@ -61,12 +61,33 @@ Config.ShopNPCs = {
         model = "A_M_M_UniBoatCrew_01",
         blip = {
             enabled = true,
-            sprite = 520025969, -- blip_shop_general
-            color = "BLIP_MODIFIER_MP_COLOR_32", -- Green
+            sprite = "blip_shop_store", -- Valid General Store Icon
+            -- color = "BLIP_MODIFIER_MP_COLOR_32",
+            label = "Farming Supplies"
+        }
+    },
+    {
+        coords = vector3(-756.16, -1318.13, 43.77),
+        heading = 260.85,
+        model = "A_M_M_UniBoatCrew_01",
+        blip = {
+            enabled = true,
+            sprite = "blip_shop_store",
+            label = "Farming Supplies"
+        }
+    },
+    {
+        coords = vector3(-3692.92, -2628.55, -13.69),
+        heading = 88.10,
+        model = "A_M_M_UniBoatCrew_01",
+        blip = {
+            enabled = true,
+            sprite = "blip_shop_store",
             label = "Farming Supplies"
         }
     }
 }
+
 
 
 
