@@ -1,3 +1,5 @@
+![Farming Preview](html/images/preview.jpg)
+
 # rsg-farming by devchacha
 
 A comprehensive farming system for RedM RSG-Core, allowing you to plant, water, maintain, and harvest a wide variety of crops.
