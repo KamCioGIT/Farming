@@ -683,8 +683,8 @@ Config.Seeds = {
         prop = "crp_tomatoes_har_aa_sim", -- Default
         stages = {
             { prop = "crp_tomatoes_sap_aa_sim", minGrowth = 0 },  -- Young
-            { prop = "crp_tomatoes_aa_sim", minGrowth = 50 },     -- Flowering
-            { prop = "crp_tomatoes_har_aa_sim", minGrowth = 90 }  -- Ripe
+            { prop = "crp_tomatoes_har_aa_sim", minGrowth = 50 },     -- Flowering
+            { prop = "crp_tomatoes_aa_sim", minGrowth = 90 }  -- Ripe
         },
         seedname = "tomato_seed",
         seedreq = 2,
