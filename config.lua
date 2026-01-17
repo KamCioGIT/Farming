@@ -35,7 +35,7 @@ Config.RequestUpdateTime = 2 -- minutes
 
 Config.Items = {
     water = "water", -- Item given when filling bucket/drinking
-    emptybucket = "bucket", -- Item required to fill water (optional logic)
+    emptybucket = "emptybucket", -- Item required to fill water (optional logic)
     fullbucket = "fullbucket", -- Item given after filling
     fertilizer = "fertilizer",
     trimmer = "shears", 
@@ -732,7 +732,7 @@ Config.Seeds = {
 -- Defines the Shop Items (Tools + Manual Seed List)
 Config.ShopItems = {
     -- Tools
-    { name = 'bucket',                  price = 2,  amount = 100, info = {}, type = "item", slot = 1 },
+    { name = 'emptybucket',             price = 2,  amount = 100, info = {}, type = "item", slot = 1 },
     { name = 'fertilizer',              price = 5,  amount = 100, info = {}, type = "item", slot = 2 },
     { name = 'shovel',                  price = 5,  amount = 100, info = {}, type = "item", slot = 3 },
     
